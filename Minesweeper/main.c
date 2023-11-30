@@ -7,6 +7,8 @@
 #include <stdio.h>
 #include <string.h>
 #include <stdlib.h>
+#include <math.h>
+#include <time.h>
 // ----------------------------------
 // global definitions
 #define MAXTOKENCOUNT 20
@@ -69,6 +71,11 @@ int gettokens(char line[], char tokens[][MAXTOKENLENGTH], int* count) {
 
 // ---------------------------------
 // ---------------------------------
+
+int get_random(int range){
+    return ((int)floor((float)range*rand()/RAND_MAX))%range;
+}
+
 void init_cells(cell *c){
     c->position = cellcount;
     c->adjcount = 0;
@@ -78,8 +85,9 @@ void init_cells(cell *c){
 }
 
 void display_cell(cell *c){
-    if (c->flagged == 1) printf("P      ");
-    else if (c-> covered == 1) printf("■ "); //printf("%d      ", c->position);
+    if (c->flagged == 1) printf("P ");
+    //else if (c-> mined == 1) printf("O ");
+    else if (c-> covered == 1) printf("X "); //printf("%d      ", c->position);
 }
 
 void command_new(int r, int c, int m){
@@ -102,6 +110,34 @@ void command_new(int r, int c, int m){
             cellcount++;
         }
     }
+    
+    //ADD MINES
+    //pack mines
+    for (int p = 0; p < m; p++){
+        int r_pack = p/cols;
+        int c_pack = p%cols;
+        board[r_pack][c_pack].mined = 1;
+    }
+    //shuffle mines
+    int shuffle = m*50;
+    for(int s = 0; s < shuffle; s++){
+        //Get first cell
+        int r1 = get_random(rows-1);
+        int c1 = get_random(cols-1);
+        //get second cell
+        int r2 = get_random(rows-1);
+        int c2 = get_random(cols-1);
+        //get mined status
+        int x = board[r1][c1].mined;
+        int y = board[r2][c2].mined;
+        //Swap
+        board[r1][c1].mined = y;
+        board[r2][c2].mined = x;
+        
+    }
+    
+    //CALCULATE CELL ADJACENCY
+    
 }
 
 void command_show(void){
@@ -137,6 +173,7 @@ int processcommand(char tokens[][MAXTOKENLENGTH], int tokencount) {
 int rungame(void) {
     char line[MAXLINELENGTH];
     char tokens[MAXTOKENCOUNT][MAXTOKENLENGTH];
+    srand(time(0));
 
     while (1) {
         int tokencount;
