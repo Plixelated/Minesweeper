@@ -107,11 +107,11 @@ void cell_adjacency(cell current, int r, int c){
 }
 
 void display_cell(cell *c){
-    if (c->flagged == 1) printf("%2s","P");
-    else if (c-> covered == 1) printf("%2s", "/");
-    else if (c-> mined == 1) printf("%2s", "*");
-    else if (c -> adjcount > 0) printf("%2d", c->adjcount);
-    else printf("%2s",".");
+    if (c->flagged == 1) printf("%3s","P");
+    else if (c-> covered == 1) printf("%3s", "/");
+    else if (c-> mined == 1) printf("%3s", "*");
+    else if (c -> adjcount > 0) printf("%3d", c->adjcount);
+    else printf("%3s",".");
 }
 
 void command_new(int r, int c, int m){
@@ -172,9 +172,19 @@ void command_new(int r, int c, int m){
 }
 
 void command_show(void){
-    for (int i = 0; i < rows; i++){
-        for (int j = 0; j < cols; j++){
-            display_cell(&board[i][j]);
+    for (int i = -1; i < rows; i++){
+        for (int j = -1; j < cols; j++){
+            if (i == -1){
+                printf("%3d", j+1);
+            }
+            else if(j == -1){
+                printf("%3d", i+1);
+                if (i+1 == 0)
+                    printf("%3s", " ");
+            }
+            else{
+                display_cell(&board[i][j]);
+            }
         }
         printf("\n");
     }
@@ -196,6 +206,10 @@ int check_for_win(){
 
 
 void command_uncover(int r, int c){
+    if (r < 0 || c < 0){
+        printf("Invalid Location Please Try Again\n");
+        return;
+    }
     board[r][c].covered = 0;
     
     if (board[r][c].mined == 1){
@@ -273,7 +287,7 @@ int processcommand(char tokens[][MAXTOKENLENGTH], int tokencount) {
     
     if (strcmp(tokens[0],"new") == 0) { //NEW BOARD
         command_new(rows, cols, mines);
-        if (win_lose  == 0)
+        if (win_lose  != -1)
             win_lose = -1;
     }
     else if (strcmp(tokens[0],"show") == 0 && win_lose == -1) { //SHOW BOARD
