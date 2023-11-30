@@ -25,6 +25,9 @@ int cols;
 int mines;
 int cellcount;
 
+int win_lose;
+//1 win, 0 lose, -1 continue
+
 // sizing constants
 
 // definition of “cell” struct
@@ -104,13 +107,16 @@ void cell_adjacency(cell current, int r, int c){
 }
 
 void display_cell(cell *c){
-    if (c->flagged == 1) printf("P ");
+    if (c->flagged == 1) printf("%2s","P");
+    else if (c-> covered == 1) printf("%2s", "/");
     else if (c-> mined == 1) printf("%2s", "*");
     else if (c -> adjcount > 0) printf("%2d", c->adjcount);
-    else if (c-> covered == 1) printf("%2s", "X"); //printf("%d      ", c->position);
+    else printf("%2s",".");
 }
 
 void command_new(int r, int c, int m){
+    if (board != NULL) board = NULL;
+    
     rows = r;
     cols = c;
     mines = m;
@@ -174,32 +180,139 @@ void command_show(void){
     }
 }
 
+int check_for_win(){
+    for (int r = 0; r < rows; r++){
+        for (int c = 0; c < cols; c++){
+            if(board[r][c].mined == 1 && board[r][c].flagged == 0)
+                return -1; //false
+            else if (board[r][c].mined == 0 && board[r][c].covered == 1)
+                return -1; //false
+        }
+    }
+    printf("Congratulations! You Won!\n");
+    command_show();
+    return 1; //true
+}
+
+
+void command_uncover(int r, int c){
+    board[r][c].covered = 0;
+    
+    if (board[r][c].mined == 1){
+        win_lose = 0;
+        printf("Oh No! You Uncovered a Mine!\nTry Again.\n");
+        return;
+    }
+
+    if (board[r][c].adjcount == 0){
+        //Get Neighbors
+        int rowneighbors[] = {-1, -1, 0, 1, 1,  1,  0, -1};
+        int colneighbors[] = {0,   1, 1, 1, 0, -1, -1, -1};
+        //For each neighbor
+        int neighborcount = 8;
+        
+        for (int d = 0; d < neighborcount; d++){
+            int next_row = r + rowneighbors[d];
+            int next_col = c + colneighbors[d];
+            //If there is a valid index
+            if (0 <= next_row && next_row < rows && 0 <= next_col && next_col < cols){ //&& rn < neighborcount && cn < neighborcount ){
+                //If it is covered
+                if (board[next_row][next_col].covered == 1){
+                    //Uncover it
+                    command_uncover(next_row, next_col);//, ++rn, ++cn);
+                }
+            }
+        }
+    }
+    
+    win_lose = check_for_win();
+}
+
+void command_flag(int r, int c){
+    win_lose = check_for_win();
+    
+    if (board[r][c].flagged == 0){
+        board[r][c].flagged = 1;
+    }
+    else{
+        printf("Cell Already Flagged\n");
+    }
+    
+}
+
+void command_unflag(int r, int c){
+    if (board[r][c].flagged == 1){
+        board[r][c].flagged = 0;
+    }
+    else{
+        printf("Cell Is Not Flagged\n");
+    }
+}
+
+void command_uncoverall(void){
+    for (int r = 0; r < rows; r++){
+        for (int c = 0; c < cols; c++){
+            board[r][c].covered = 0;
+        }
+    }
+}
+
+void command_coverall(void){
+    for (int r = 0; r < rows; r++){
+        for (int c = 0; c < cols; c++){
+            board[r][c].covered = 1;
+        }
+    }
+}
+
 int processcommand(char tokens[][MAXTOKENLENGTH], int tokencount) {
 
     int rows = atoi(tokens[1]);
     int cols = atoi(tokens[2]);
     int mines = atoi(tokens[3]);
     
-    if (strcmp(tokens[0],"new") == 0) {
+    if (strcmp(tokens[0],"new") == 0) { //NEW BOARD
         command_new(rows, cols, mines);
+        if (win_lose  == 0)
+            win_lose = -1;
     }
-    else if (strcmp(tokens[0],"show") == 0) {
+    else if (strcmp(tokens[0],"show") == 0 && win_lose == -1) { //SHOW BOARD
         command_show();
     }
-    else if (strcmp(tokens[0],"quit") == 0) {
-        return 0;
+    else if (strcmp(tokens[0],"quit") == 0) { //QUIT GAME
+        return -1; //quit
+    }
+    else if (strcmp(tokens[0],"uncover") == 0 && win_lose == -1) { //UNCOVER CELL
+        command_uncover(rows-1, cols-1);
+    }
+    else if (strcmp(tokens[0],"flag") == 0 && win_lose == -1) { //FLAG CELL
+        command_flag(rows-1, cols-1);
+    }
+    else if (strcmp(tokens[0],"unflag") == 0 && win_lose == -1) { //UNFLAC CELL
+        command_unflag(rows-1, cols-1);
+    }
+    else if (strcmp(tokens[0],"debug:cover") == 0) { //COVER ALL CELLS
+        command_coverall();
+    }
+    else if (strcmp(tokens[0],"debug:uncover") == 0) { //UNCOVER ALL CELLS
+        command_uncoverall();
+    }
+    else if (win_lose != -1){
+        printf("Start A New Game To Continue.\n");
     }
     else{
         printf("Invalid entry, please try again\n");
     }
+
     return 1;
 }
 
 int rungame(void) {
+    win_lose = -1;
     char line[MAXLINELENGTH];
     char tokens[MAXTOKENCOUNT][MAXTOKENLENGTH];
     srand(time(0));
-
+    
     while (1) {
         int tokencount;
         int result;
@@ -207,8 +320,8 @@ int rungame(void) {
         getLine(line, MAXLINELENGTH);
         gettokens(line, tokens, &tokencount);
         result = processcommand(tokens, tokencount);
-
-        if (result == 0) break;
+        
+        if (result == -1) break;
     }
     
     return 1;
