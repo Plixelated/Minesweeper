@@ -84,10 +84,30 @@ void init_cells(cell *c){
     c->flagged = 0;
 }
 
+void cell_adjacency(cell current, int r, int c){
+    int neighborcount = 8;
+    int rowneighbors[] = {-1, -1, 0, 1, 1,  1,  0, -1};
+    int colneighbors[] = {0,   1, 1, 1, 0, -1, -1, -1};
+    int minecount = current.adjcount;
+    
+    for (int d = 0; d < neighborcount; d++){
+        int rn = r + rowneighbors[d];
+        int cn = c + colneighbors[d];
+        
+        if (0 <= rn && rn < rows && 0 <= cn && cn < cols){
+            if (board[rn][cn].mined == 1){
+                minecount++;
+            }
+        }
+    }
+    board[r][c].adjcount = minecount;
+}
+
 void display_cell(cell *c){
     if (c->flagged == 1) printf("P ");
-    //else if (c-> mined == 1) printf("O ");
-    else if (c-> covered == 1) printf("X "); //printf("%d      ", c->position);
+    else if (c-> mined == 1) printf("%2s", "*");
+    else if (c -> adjcount > 0) printf("%2d", c->adjcount);
+    else if (c-> covered == 1) printf("%2s", "X"); //printf("%d      ", c->position);
 }
 
 void command_new(int r, int c, int m){
@@ -137,6 +157,11 @@ void command_new(int r, int c, int m){
     }
     
     //CALCULATE CELL ADJACENCY
+    for (int i = 0; i < rows; i ++){
+        for (int j = 0; j < cols; j++){
+            cell_adjacency(board[i][j], i, j);
+        }
+    }
     
 }
 
