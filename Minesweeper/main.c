@@ -14,6 +14,10 @@
 #define MAXTOKENCOUNT 20
 #define MAXTOKENLENGTH 20
 #define MAXLINELENGTH 400
+#define LEGALCMDCOUNT 8
+//Input Verification
+char *legalcommands[] = {"new", "show", "quit", "uncover", "flag", "unflag", "debug:cover", "debug:uncover"};
+int legalcommandargs[] = {3, 0 , 0, 2, 2, 2, 0 , 0};
 
 char line[100], linecopy[100];
 char tokens[5][20];
@@ -190,7 +194,7 @@ void command_show(void){
     }
 }
 
-int check_for_win(){
+int check_for_win(void){
     for (int r = 0; r < rows; r++){
         for (int c = 0; c < cols; c++){
             if(board[r][c].mined == 1 && board[r][c].flagged == 0)
@@ -279,8 +283,25 @@ void command_coverall(void){
     }
 }
 
-int processcommand(char tokens[][MAXTOKENLENGTH], int tokencount) {
+int input_verification(char tokens[][MAXTOKENLENGTH], int tokencount){
+    int cmdlegal = -1;
+    for(int i = 0; i < LEGALCMDCOUNT; i++){
+        if (strcmp(tokens[0], legalcommands[i]) == 0){
+            cmdlegal = i;
+            break;
+        }
+    }
+    if(cmdlegal >= 0 && tokencount-1 == legalcommandargs[cmdlegal]){
+        return 1;
+    }
+    else{
+        printf("Invalid entry, please try again\n");
+        return 0;
+    }
+}
 
+int processcommand(char tokens[][MAXTOKENLENGTH], int tokencount) {
+    
     int rows = atoi(tokens[1]);
     int cols = atoi(tokens[2]);
     int mines = atoi(tokens[3]);
@@ -314,9 +335,6 @@ int processcommand(char tokens[][MAXTOKENLENGTH], int tokencount) {
     else if (win_lose != -1){
         printf("Start A New Game To Continue.\n");
     }
-    else{
-        printf("Invalid entry, please try again\n");
-    }
 
     return 1;
 }
@@ -328,12 +346,15 @@ int rungame(void) {
     srand(time(0));
     
     while (1) {
-        int tokencount;
         int result;
+        int valid;
         printf(">> ");
         getLine(line, MAXLINELENGTH);
         gettokens(line, tokens, &tokencount);
-        result = processcommand(tokens, tokencount);
+        valid = input_verification(tokens, tokencount);
+        if (valid > 0){
+            result = processcommand(tokens, tokencount);
+        }
         
         if (result == -1) break;
     }
